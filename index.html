@@ -39,6 +39,7 @@
         display: block;
         margin-bottom: 0.5rem;
         font-size: 1rem;
+        text-align: left; /* ラベルを左寄せに見やすく調整 */
       }
       .form-field input,
       .form-field select {
@@ -47,6 +48,7 @@
         font-size: 1rem;
         border: 1px solid #ccc;
         border-radius: 5px;
+        box-sizing: border-box; /* パディングを含めた幅計算に変更 */
       }
       .form-button {
         background-color: #00B900;
@@ -71,10 +73,9 @@
           font-size: 2rem;
         }
       }
-        input {
-            font-size: 16px;
-            transform: scale(0.8);
-        }
+      input {
+        font-size: 16px; /* iOSでのズーム防止のため16px推奨 */
+      }
     </style>
     <title>会員登録フォーム</title>
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
@@ -85,13 +86,17 @@
             liffId: myLiffId
           })
           .then(() => {
-            // LIFF initialization succeeded
             console.log('LIFF initialized');
-            getUserProfile();
+            // ログインしていない場合はログイン画面へ（オプション）
+            if (!liff.isLoggedIn()) {
+               liff.login();
+            } else {
+               getUserProfile();
+            }
           })
           .catch((err) => {
-            // LIFF initialization failed
             console.error('LIFF initialization failed', err);
+            alert('LIFFの初期化に失敗しました。LINEアプリから開いてください。');
           });
       }
 
@@ -103,15 +108,24 @@
           })
           .catch((err) => {
             console.error('プロフィール情報の取得に失敗しました', err);
+            document.getElementById('userId').textContent = 'ユーザー情報を取得できませんでした';
           });
       }
 
       function sendMessage() {
+        // LINEアプリ外（Chromeなど）では sendMessages は動作しないためチェック
+        if (!liff.isInClient()) {
+            alert('この機能はLINEアプリ内のトークルームで開いた場合のみ動作します。\n（外部ブラウザではメッセージ送信できません）');
+            return;
+        }
+
         const name = document.getElementById('name').value;
         const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+        // パスワードはセキュリティ上、メッセージとして送信しない方が安全ですが、
+        // 今回は元のコードのロジック（送信メッセージには含めない）を維持しています。
         const age = document.getElementById('age').value;
-        const gender = document.getElementById('gender').value;
+        const genderElement = document.getElementById('gender');
+        const gender = genderElement.options[genderElement.selectedIndex].text; // 値ではなく表示テキストを取得
         const address = document.getElementById('address').value;
 
         const message = `登録情報:\n名前: ${name}\nメール: ${email}\n年齢: ${age}\n性別: ${gender}\n住所: ${address}`;
@@ -128,12 +142,13 @@
         })
         .catch((err) => {
           console.error('メッセージ送信エラー', err);
-          alert('メッセージの送信に失敗しました');
+          alert('メッセージの送信に失敗しました。');
         });
       }
 
       document.addEventListener('DOMContentLoaded', function () {
-        const myLiffId = 'YOUR_LIFF_ID'; //https://miniapp.line.me/2008894279-9ljKrq0B
+        // 修正箇所: コメントにあったURLからID部分を抽出して設定
+        const myLiffId = '2008894279-9ljKrq0B'; 
         initializeLiff(myLiffId);
 
         document.querySelector('form').addEventListener('submit', function (event) {
